@@ -1,3 +1,18 @@
+/*
+ * Copyright 2022-2022 Exactpro (Exactpro Systems Limited)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.exactpro.th2.codec.json
 
 import com.exactpro.th2.codec.json.JsonCodecFactory.Companion.PROTOCOL
@@ -9,6 +24,8 @@ import com.exactpro.th2.common.grpc.RawMessage
 import com.exactpro.th2.common.message.get
 import com.exactpro.th2.common.message.getField
 import com.exactpro.th2.common.message.getList
+import com.exactpro.th2.common.message.getMessage
+import com.exactpro.th2.common.message.getString
 import com.google.protobuf.ByteString
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -23,7 +40,7 @@ class DecodeTest {
             {
                "stringField": "value",
                "intField": 123,
-               "decimalField": 123.1,
+               "decimalField": 123.100000000000000000,
                "object": {
                   "objectField": "objectFieldValue"
                },
@@ -44,23 +61,23 @@ class DecodeTest {
 
         val decodedMessage = codec.decode(messageGroup).getMessages(0).message
 
-        assertEquals(decodedMessage.getField("stringField")?.simpleValue, "value")
-        assertEquals(decodedMessage.getField("intField")?.simpleValue, "number(123)")
-        assertEquals(decodedMessage.getField("decimalField")?.simpleValue, "number(123.1)")
+        assertEquals(decodedMessage.getString("stringField"), "value")
+        assertEquals(decodedMessage.getString("intField"), "number(123)")
+        assertEquals(decodedMessage.getString("decimalField"), "number(123.1)")
 
-        val objectTest = decodedMessage.getField("object")?.messageValue
+        val objectTest = decodedMessage.getMessage("object")
         assertNotNull(objectTest)
-        assertEquals(objectTest.getField("objectField")?.simpleValue, "objectFieldValue")
+        assertEquals(objectTest.getString("objectField"), "objectFieldValue")
 
-        val list = decodedMessage.getField("primitiveList")?.listValue
+        val list = decodedMessage.getList("primitiveList")
         assertNotNull(list)
-        assertEquals(list.getValues(0)?.simpleValue, "number(1)")
+        assertEquals(list[0]?.simpleValue, "number(1)")
 
-        val objectList = decodedMessage.getField("objectList")?.listValue
+        val objectList = decodedMessage.getList("objectList")
         assertNotNull(objectList)
-        val listObject = objectList.getValues(1)?.messageValue
+        val listObject = objectList[1]?.messageValue
         assertNotNull(listObject)
-        assertEquals(listObject.getField("anotherObjectField")?.simpleValue, "boolean(true)")
+        assertEquals(listObject.getString("anotherObjectField"), "boolean(true)")
         assertEquals(decodedMessage.parentEventId.id, eventId)
     }
 }

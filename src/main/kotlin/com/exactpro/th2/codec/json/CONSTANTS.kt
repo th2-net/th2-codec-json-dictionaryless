@@ -15,6 +15,5 @@
  */
 package com.exactpro.th2.codec.json
 
-import com.exactpro.th2.codec.api.IPipelineCodecSettings
-
-class JsonPipelineCodecSettings(val encodeTypeInfo: Boolean, val decodeTypeInfo: Boolean): IPipelineCodecSettings
+const val ENCODE_TYPE_INFO_PROPERTY = "encodeTypeInfo"
+const val DECODE_TYPE_INFO_PROPERTY = "decodeTypeInfo"
