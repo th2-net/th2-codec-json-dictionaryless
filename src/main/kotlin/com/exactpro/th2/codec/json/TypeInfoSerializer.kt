@@ -39,7 +39,7 @@ class TypeInfoSerializer: StdSerializer<String>(String::class.java) {
             }
         }
         value.startsWith(BOOLEAN_PREFIX) -> {
-            gen.writeBoolean(value.substring(BOOLEAN_PREFIX_LENGTH, value.lastIndex).let { it.toBoolean() })
+            gen.writeBoolean(value.substring(BOOLEAN_PREFIX_LENGTH, value.lastIndex).toBoolean())
         }
         else -> gen.writeString(value)
     }
