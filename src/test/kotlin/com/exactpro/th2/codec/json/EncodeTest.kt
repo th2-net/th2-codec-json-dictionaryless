@@ -81,7 +81,7 @@ class EncodeTest {
             metadataBuilder.protocol = PROTOCOL
         }
         val messageGroup = MessageGroup.newBuilder().addMessages(AnyMessage.newBuilder().setMessage(message)).build()
-        val result = codec.encode(messageGroup).getMessages(0).rawMessage.body.toByteArray().toString(UTF_8)
+        val result = codec.encode(messageGroup).getMessages(0).rawMessage.body.toString(UTF_8)
         assertEquals(MAPPER.readTree(result), MAPPER.readTree(expectedJsonString))
     }
     companion object {

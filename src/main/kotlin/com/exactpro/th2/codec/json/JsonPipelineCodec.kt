@@ -42,17 +42,19 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
         if(settings.encodeTypeInfo || settings.decodeTypeInfo) {
             val module = SimpleModule()
             if(settings.encodeTypeInfo) module.addSerializer(String::class.java, TypeInfoSerializer())
-            if(settings.decodeTypeInfo) module.addDeserializer(Any::class.java, TypeInfoDeserializer())
+            if(settings.decodeTypeInfo) {
+                val listType = typeFactory.constructCollectionType(List::class.java, Object::class.java)
+                val mapType = typeFactory.constructMapType(Map::class.java, String::class.java, Object::class.java)
+                module.addDeserializer(Any::class.java, TypeInfoDeserializer(listType, mapType))
+            }
             registerModule(module)
         }
     }
 
     override fun decode(messageGroup: MessageGroup): MessageGroup {
-        val messages = messageGroup.messagesList
-
         val builder = MessageGroup.newBuilder()
 
-        for (message in messages) {
+        for (message in messageGroup.messagesList) {
             if (!message.hasRawMessage()) {
                 builder.addMessages(message)
                 continue
@@ -88,10 +90,9 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
     }
 
     override fun encode(messageGroup: MessageGroup): MessageGroup {
-        val messages = messageGroup.messagesList
         val builder = MessageGroup.newBuilder()
 
-        for (message in messages) {
+        for (message in messageGroup.messagesList) {
             if (!message.hasMessage()) {
                 builder.addMessages(message)
                 continue
@@ -99,6 +100,11 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
 
             val parsedMessage = message.message
             val metadata = parsedMessage.metadata
+
+            if (metadata.run { protocol.isNotBlank() && protocol != PROTOCOL }) {
+                builder.addMessages(message)
+                continue
+            }
 
             builder += when(val direction = parsedMessage.direction) {
                 FIRST, SECOND -> objectMapper.writeValueAsString(parsedMessage.toMap())
@@ -117,12 +123,6 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
     companion object {
         private const val INCOMING = "Incoming"
         private const val OUTGOING = "Outgoing"
-        private val MAPPER = ObjectMapper().apply {
-            val module = SimpleModule()
-            module.addSerializer(String::class.java, TypeInfoSerializer())
-            module.addDeserializer(Any::class.java, TypeInfoDeserializer())
-            this.registerModule(module)
-        }
 
         private fun ByteArray.toRawMessage(
             messageId: MessageID,

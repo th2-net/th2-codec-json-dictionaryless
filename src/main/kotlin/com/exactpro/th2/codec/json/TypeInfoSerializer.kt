@@ -25,25 +25,23 @@ import kotlin.String
 import kotlin.Throws
 
 
-class TypeInfoSerializer constructor() : StdSerializer<String>(String::class.java) {
+class TypeInfoSerializer: StdSerializer<String>(String::class.java) {
     @Throws(IOException::class)
-    override fun serialize(value: String, gen: JsonGenerator, provider: SerializerProvider) {
-        when {
-            !value.endsWith(TYPE_SUFFIX) -> gen.writeString(value)
-            value.startsWith(NUMBER_PREFIX) -> {
-                value.substring(NUMBER_PREFIX_LENGTH, value.length - 1).let { value ->
-                    if (value.any { it == '.' || it == ','}) {
-                        gen.writeNumber(BigDecimal(value))
-                    } else {
-                        gen.writeNumber(BigInteger(value))
-                    }
+    override fun serialize(value: String, gen: JsonGenerator, provider: SerializerProvider) = when {
+        !value.endsWith(TYPE_SUFFIX) -> gen.writeString(value)
+        value.startsWith(NUMBER_PREFIX) -> {
+            value.substring(NUMBER_PREFIX_LENGTH, value.lastIndex).let { value ->
+                if (value.any { it == '.' || it == ',' }) {
+                    gen.writeNumber(BigDecimal(value))
+                } else {
+                    gen.writeNumber(BigInteger(value))
                 }
             }
-            value.startsWith(BOOLEAN_PREFIX) -> {
-                gen.writeBoolean(value.substring(BOOLEAN_PREFIX_LENGTH, value.length - 1).let { it.toBoolean() })
-            }
-            else -> gen.writeString(value)
         }
+        value.startsWith(BOOLEAN_PREFIX) -> {
+            gen.writeBoolean(value.substring(BOOLEAN_PREFIX_LENGTH, value.lastIndex).let { it.toBoolean() })
+        }
+        else -> gen.writeString(value)
     }
 
     companion object {

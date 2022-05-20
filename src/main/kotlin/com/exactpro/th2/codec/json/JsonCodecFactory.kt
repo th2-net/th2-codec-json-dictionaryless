@@ -15,7 +15,6 @@
  */
 package com.exactpro.th2.codec.json
 
-import com.exactpro.th2.codec.api.IPipelineCodec
 import com.exactpro.th2.codec.api.IPipelineCodecContext
 import com.exactpro.th2.codec.api.IPipelineCodecFactory
 import com.exactpro.th2.codec.api.IPipelineCodecSettings

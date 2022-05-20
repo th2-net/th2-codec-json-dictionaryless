@@ -57,7 +57,7 @@ class DecodeTest {
             metadataBuilder.idBuilder.direction = Direction.SECOND
             body = ByteString.copyFrom(jsonString.toByteArray())
         }
-        val messageGroup = MessageGroup.newBuilder().addMessages(AnyMessage.newBuilder().setRawMessage(message).build()).build()
+        val messageGroup = MessageGroup.newBuilder().addMessages(AnyMessage.newBuilder().setRawMessage(message)).build()
 
         val decodedMessage = codec.decode(messageGroup).getMessages(0).message
 
@@ -71,11 +71,11 @@ class DecodeTest {
 
         val list = decodedMessage.getList("primitiveList")
         assertNotNull(list)
-        assertEquals(list[0]?.simpleValue, "number(1)")
+        assertEquals(list[0].simpleValue, "number(1)")
 
         val objectList = decodedMessage.getList("objectList")
         assertNotNull(objectList)
-        val listObject = objectList[1]?.messageValue
+        val listObject = objectList[1].messageValue
         assertNotNull(listObject)
         assertEquals(listObject.getString("anotherObjectField"), "boolean(true)")
         assertEquals(decodedMessage.parentEventId.id, eventId)

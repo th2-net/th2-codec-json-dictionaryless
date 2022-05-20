@@ -18,23 +18,22 @@ package com.exactpro.th2.codec.json
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonTokenId
 import com.fasterxml.jackson.databind.DeserializationContext
+import com.fasterxml.jackson.databind.JavaType
 import com.fasterxml.jackson.databind.deser.std.UntypedObjectDeserializer
 import java.io.IOException
 import java.math.BigDecimal
 
 
-class TypeInfoDeserializer : UntypedObjectDeserializer() {
+class TypeInfoDeserializer(listType: JavaType, mapType: JavaType) : UntypedObjectDeserializer(listType, mapType) {
     @Throws(IOException::class)
-    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Any {
-        return when(p.currentTokenId) {
-            JsonTokenId.ID_TRUE, JsonTokenId.ID_FALSE -> "boolean(" + p.booleanValue.toString() + ")"
-            JsonTokenId.ID_NUMBER_INT, JsonTokenId.ID_NUMBER_FLOAT -> {
-                val number = p.numberValue.apply {
-                    if(this is BigDecimal) stripTrailingZeros().toPlainString() else toString()
-                }
-                "number($number)"
+    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Any = when (p.currentTokenId) {
+        JsonTokenId.ID_TRUE, JsonTokenId.ID_FALSE -> "boolean(" + p.booleanValue.toString() + ")"
+        JsonTokenId.ID_NUMBER_INT, JsonTokenId.ID_NUMBER_FLOAT -> {
+            val number = p.numberValue.apply {
+                if (this is BigDecimal) stripTrailingZeros().toPlainString() else toString()
             }
-            else -> super.deserialize(p, ctxt)
+            "number($number)"
         }
+        else -> super.deserialize(p, ctxt)
     }
 }
