@@ -26,12 +26,11 @@ import java.math.BigDecimal
 class TypeInfoDeserializer : UntypedObjectDeserializer() {
     @Throws(IOException::class)
     override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Any {
-        if(!(ctxt.getAttribute(DECODE_TYPE_INFO_PROPERTY) as Boolean)) return super.deserialize(p, ctxt)
         return when(p.currentTokenId) {
             JsonTokenId.ID_TRUE, JsonTokenId.ID_FALSE -> "boolean(" + p.booleanValue.toString() + ")"
             JsonTokenId.ID_NUMBER_INT, JsonTokenId.ID_NUMBER_FLOAT -> {
                 val number = p.numberValue.apply {
-                    if(this is BigDecimal) stripTrailingZeros().toPlainString() else this.toString()
+                    if(this is BigDecimal) stripTrailingZeros().toPlainString() else toString()
                 }
                 "number($number)"
             }

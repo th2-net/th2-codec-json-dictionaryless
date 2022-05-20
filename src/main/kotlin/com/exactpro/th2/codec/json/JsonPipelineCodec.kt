@@ -37,16 +37,18 @@ import com.fasterxml.jackson.databind.module.SimpleModule
 import com.google.protobuf.ByteString
 import kotlin.text.Charsets.UTF_8
 
-class JsonPipelineCodec(private val settings: JsonPipelineCodecSettings): IPipelineCodec {
-    private val reader: ObjectReader = getReader(settings.decodeTypeInfo)
-    private val writer: ObjectWriter = getWriter(settings.encodeTypeInfo)
+class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
+    private val objectMapper = ObjectMapper().apply {
+        if(settings.encodeTypeInfo || settings.decodeTypeInfo) {
+            val module = SimpleModule()
+            if(settings.encodeTypeInfo) module.addSerializer(String::class.java, TypeInfoSerializer())
+            if(settings.decodeTypeInfo) module.addDeserializer(Any::class.java, TypeInfoDeserializer())
+            registerModule(module)
+        }
+    }
 
     override fun decode(messageGroup: MessageGroup): MessageGroup {
         val messages = messageGroup.messagesList
-
-        if (messages.isEmpty() || messages.none(AnyMessage::hasRawMessage)) {
-            return messageGroup
-        }
 
         val builder = MessageGroup.newBuilder()
 
@@ -58,21 +60,27 @@ class JsonPipelineCodec(private val settings: JsonPipelineCodecSettings): IPipel
 
             val rawMessage = message.rawMessage
             val metadata = rawMessage.metadata
-            val body = message.rawMessage.body.toByteArray().toString(UTF_8)
 
-            when (val direction = metadata.id.direction) {
-                FIRST, SECOND -> {
-                    builder += reader.readValue(body, Map::class.java).toProtoBuilder().apply {
-                        if (rawMessage.hasParentEventId()) parentEventIdBuilder.mergeFrom(rawMessage.parentEventId)
-                        metadataBuilder.apply {
-                            putAllProperties(metadata.propertiesMap)
-                            messageType = if (direction == FIRST) INCOMING else OUTGOING
-                            protocol = PROTOCOL
-                            id = metadata.id
-                        }
-                    }
+            if (metadata.run { protocol.isNotBlank() && protocol != PROTOCOL }) {
+                builder.addMessages(message)
+                continue
+            }
+
+            val direction = metadata.id.direction
+
+            require(direction == FIRST || direction == SECOND) { "Unsupported message direction: $direction" }
+
+            val body = rawMessage.body.toByteArray().toString(UTF_8)
+
+            builder += objectMapper.readValue(body, Map::class.java).toProtoBuilder().apply {
+                if (rawMessage.hasParentEventId()) parentEventId = rawMessage.parentEventId
+
+                metadataBuilder.apply {
+                    putAllProperties(metadata.propertiesMap)
+                    messageType = if (direction == FIRST) INCOMING else OUTGOING
+                    protocol = PROTOCOL
+                    id = metadata.id
                 }
-                else -> error("Unsupported message direction: $direction")
             }
         }
 
@@ -88,16 +96,12 @@ class JsonPipelineCodec(private val settings: JsonPipelineCodecSettings): IPipel
                 builder.addMessages(message)
                 continue
             }
-            if (message.message.metadata.run { protocol.isNotEmpty() && protocol != PROTOCOL }) {
-                builder.addMessages(message)
-                continue
-            }
 
             val parsedMessage = message.message
             val metadata = parsedMessage.metadata
 
             builder += when(val direction = parsedMessage.direction) {
-                FIRST, SECOND -> writer.writeValueAsString(parsedMessage.toMap())
+                FIRST, SECOND -> objectMapper.writeValueAsString(parsedMessage.toMap())
                 else -> error("Unsupported message direction: $direction")
             }.toByteArray(UTF_8).toRawMessage(
                 metadata.id,
@@ -120,21 +124,13 @@ class JsonPipelineCodec(private val settings: JsonPipelineCodecSettings): IPipel
             this.registerModule(module)
         }
 
-        fun getReader(appendTypeInfo: Boolean): ObjectReader {
-            return MAPPER.reader().withAttribute(DECODE_TYPE_INFO_PROPERTY, appendTypeInfo)
-        }
-
-        fun getWriter(unpackTypeInfo: Boolean): ObjectWriter {
-            return MAPPER.writer().withAttribute(ENCODE_TYPE_INFO_PROPERTY, unpackTypeInfo)
-        }
-
         private fun ByteArray.toRawMessage(
             messageId: MessageID,
             metadataProperties: Map<String, String>,
             eventID: EventID
         ): RawMessage = RawMessage.newBuilder().apply {
             body = ByteString.copyFrom(this@toRawMessage)
-            parentEventIdBuilder.mergeFrom(eventID)
+            parentEventId = eventID
             metadataBuilder.apply {
                 protocol = PROTOCOL
                 putAllProperties(metadataProperties)

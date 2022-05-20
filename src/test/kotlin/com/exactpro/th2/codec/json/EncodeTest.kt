@@ -25,9 +25,6 @@ import com.exactpro.th2.common.message.set
 import com.exactpro.th2.common.value.add
 import com.exactpro.th2.common.value.listValue
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.google.gson.GsonBuilder
-import com.google.gson.JsonElement
-import com.google.gson.JsonParser
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.text.Charsets.UTF_8
@@ -85,9 +82,9 @@ class EncodeTest {
         }
         val messageGroup = MessageGroup.newBuilder().addMessages(AnyMessage.newBuilder().setMessage(message)).build()
         val result = codec.encode(messageGroup).getMessages(0).rawMessage.body.toByteArray().toString(UTF_8)
-        val gson = GsonBuilder().setPrettyPrinting().create()
-        val je: JsonElement = JsonParser().parse(result)
-        val prettyResult = gson.toJson(je)
-        assertEquals(prettyResult, expectedJsonString)
+        assertEquals(MAPPER.readTree(result), MAPPER.readTree(expectedJsonString))
+    }
+    companion object {
+        private val MAPPER = ObjectMapper()
     }
 }

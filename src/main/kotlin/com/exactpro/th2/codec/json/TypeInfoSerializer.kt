@@ -28,28 +28,29 @@ import kotlin.Throws
 class TypeInfoSerializer constructor() : StdSerializer<String>(String::class.java) {
     @Throws(IOException::class)
     override fun serialize(value: String, gen: JsonGenerator, provider: SerializerProvider) {
-        if(!(provider.getAttribute(ENCODE_TYPE_INFO_PROPERTY) as Boolean)) { gen.writeString(value); return }
-
-        if(value.startsWith(NUMBER_PREFIX) && value.endsWith(TYPE_SUFFIX)) {
-            value.removePrefix(NUMBER_PREFIX).removeSuffix(TYPE_SUFFIX).let { value ->
-                if (value.any { it == '.' || it == ','})
-                    gen.writeNumber(BigDecimal(value))
-                else gen.writeNumber(BigInteger(value))
+        when {
+            !value.endsWith(TYPE_SUFFIX) -> gen.writeString(value)
+            value.startsWith(NUMBER_PREFIX) -> {
+                value.substring(NUMBER_PREFIX_LENGTH, value.length - 1).let { value ->
+                    if (value.any { it == '.' || it == ','}) {
+                        gen.writeNumber(BigDecimal(value))
+                    } else {
+                        gen.writeNumber(BigInteger(value))
+                    }
+                }
             }
-            return
+            value.startsWith(BOOLEAN_PREFIX) -> {
+                gen.writeBoolean(value.substring(BOOLEAN_PREFIX_LENGTH, value.length - 1).let { it.toBoolean() })
+            }
+            else -> gen.writeString(value)
         }
-
-        if(value.startsWith(BOOLEAN_PREFIX) && value.endsWith(TYPE_SUFFIX)) {
-            gen.writeBoolean(value.removePrefix(BOOLEAN_PREFIX).removeSuffix(TYPE_SUFFIX).let { it.toBoolean() })
-            return
-        }
-
-        gen.writeString(value)
     }
 
     companion object {
         private const val NUMBER_PREFIX = "number("
+        private const val NUMBER_PREFIX_LENGTH = NUMBER_PREFIX.length
         private const val BOOLEAN_PREFIX = "boolean("
+        private const val BOOLEAN_PREFIX_LENGTH = BOOLEAN_PREFIX.length
         private const val TYPE_SUFFIX = ")"
     }
 }
