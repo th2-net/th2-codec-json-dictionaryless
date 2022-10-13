@@ -1,4 +1,4 @@
-# th2-codec-json-dictionaryless v0.0.1
+# th2-codec-json-dictionaryless v0.1.0
 This microservice can encode and decode JSON messages.
 
 ## Configuration
@@ -23,7 +23,7 @@ metadata:
   name: ws-json-codec
 spec:
   image-name: ghcr.io/th2-net/th2-codec-json-dictionaryless
-  image-version: 0.0.1
+  image-version: 0.1.0
   custom-config:
     codecSettings:
       encodeTypeInfo: true
@@ -79,3 +79,9 @@ spec:
       enabled: false
 ```
 
+##Changelog
+
+### 0.1.0
+
++ Updated kotlin to 1.6.21
++ Updated BOM, common and codec to remove vulnerable dependencies 
