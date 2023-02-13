@@ -55,8 +55,8 @@ jar {
 dependencies {
     api platform('com.exactpro.th2:bom:4.1.0')
 
-    implementation 'com.exactpro.th2:common:3.44.0'
-    implementation 'com.exactpro.th2:codec:4.7.5'
+    implementation 'com.exactpro.th2:common:5.1.0-dev-version-5+'
+    implementation 'com.exactpro.th2:codec:5.0.0-dev-version-5+'
 
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8', version: kotlin_version
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlin_version
