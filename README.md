@@ -1,4 +1,4 @@
-# th2-codec-json-dictionaryless v0.1.0
+# th2-codec-json-dictionaryless v0.2.0
 This microservice can encode and decode JSON messages.
 
 ## Configuration
@@ -80,6 +80,10 @@ spec:
 ```
 
 ##Changelog
+
+### 0.2.0
++ Updated common, bom and codec to remove vulnerabilities.
++ Added vulnerability check pipeline step
 
 ### 0.1.0
 
