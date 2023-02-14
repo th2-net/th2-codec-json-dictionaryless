@@ -18,7 +18,9 @@ package com.exactpro.th2.codec.json
 import com.exactpro.th2.codec.api.IPipelineCodecContext
 import com.exactpro.th2.codec.api.IPipelineCodecFactory
 import com.exactpro.th2.codec.api.IPipelineCodecSettings
+import com.google.auto.service.AutoService
 
+@AutoService(IPipelineCodecFactory::class)
 class JsonCodecFactory: IPipelineCodecFactory {
     override val protocol: String = PROTOCOL
 
