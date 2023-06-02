@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2022 Exactpro (Exactpro Systems Limited)
+ * Copyright 2022-2023 Exactpro (Exactpro Systems Limited)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,36 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.exactpro.th2.codec.json
 
 import com.exactpro.th2.codec.api.IPipelineCodec
 import com.exactpro.th2.codec.json.JsonCodecFactory.Companion.PROTOCOL
-import com.exactpro.th2.common.grpc.AnyMessage
-import com.exactpro.th2.common.grpc.AnyMessage.KindCase.RAW_MESSAGE
-import com.exactpro.th2.common.grpc.Direction.FIRST
-import com.exactpro.th2.common.grpc.Direction.SECOND
-import com.exactpro.th2.common.grpc.EventID
-import com.exactpro.th2.common.grpc.MessageGroup
-import com.exactpro.th2.common.grpc.MessageID
-import com.exactpro.th2.common.grpc.RawMessage
+import com.exactpro.th2.common.grpc.Direction as ProtoDirection
+import com.exactpro.th2.common.grpc.EventID as ProtoEventID
+import com.exactpro.th2.common.grpc.MessageGroup as ProtoMessageGroup
+import com.exactpro.th2.common.grpc.MessageID as ProtoMessageID
+import com.exactpro.th2.common.grpc.RawMessage as ProtoRawMessage
 import com.exactpro.th2.common.message.direction
-import com.exactpro.th2.common.message.messageType
 import com.exactpro.th2.common.message.plusAssign
-import com.fasterxml.jackson.databind.InjectableValues
+import com.exactpro.th2.common.schema.message.impl.rabbitmq.transport.*
+import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.ObjectReader
-import com.fasterxml.jackson.databind.ObjectWriter
-import com.fasterxml.jackson.databind.cfg.ContextAttributes
 import com.fasterxml.jackson.databind.module.SimpleModule
 import com.google.protobuf.ByteString
+import io.netty.buffer.Unpooled
 import kotlin.text.Charsets.UTF_8
 
 class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
     private val objectMapper = ObjectMapper().apply {
-        if(settings.encodeTypeInfo || settings.decodeTypeInfo) {
+        if (settings.encodeTypeInfo || settings.decodeTypeInfo) {
             val module = SimpleModule()
-            if(settings.encodeTypeInfo) module.addSerializer(String::class.java, TypeInfoSerializer())
-            if(settings.decodeTypeInfo) {
+            if (settings.encodeTypeInfo) module.addSerializer(String::class.java, TypeInfoSerializer())
+            if (settings.decodeTypeInfo) {
                 val listType = typeFactory.constructCollectionType(List::class.java, Object::class.java)
                 val mapType = typeFactory.constructMapType(Map::class.java, String::class.java, Object::class.java)
                 module.addDeserializer(Any::class.java, TypeInfoDeserializer(listType, mapType))
@@ -51,8 +47,8 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
         }
     }
 
-    override fun decode(messageGroup: MessageGroup): MessageGroup {
-        val builder = MessageGroup.newBuilder()
+    override fun decode(messageGroup: ProtoMessageGroup): ProtoMessageGroup {
+        val builder = ProtoMessageGroup.newBuilder()
 
         for (message in messageGroup.messagesList) {
             if (!message.hasRawMessage()) {
@@ -70,16 +66,16 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
 
             val direction = metadata.id.direction
 
-            require(direction == FIRST || direction == SECOND) { "Unsupported message direction: $direction" }
+            require(direction == ProtoDirection.FIRST || direction == ProtoDirection.SECOND) { "Unsupported message direction: $direction" }
 
             val body = rawMessage.body.toByteArray().toString(UTF_8)
 
-            builder += objectMapper.readValue(body, Map::class.java).toProtoBuilder().apply {
+            builder += objectMapper.readValue(body, parsedBodyTypeRef).toProtoBuilder().apply {
                 if (rawMessage.hasParentEventId()) parentEventId = rawMessage.parentEventId
 
                 metadataBuilder.apply {
                     putAllProperties(metadata.propertiesMap)
-                    messageType = if (direction == FIRST) INCOMING else OUTGOING
+                    messageType = if (direction == ProtoDirection.FIRST) INCOMING else OUTGOING
                     protocol = PROTOCOL
                     id = metadata.id
                 }
@@ -89,8 +85,8 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
         return builder.build()
     }
 
-    override fun encode(messageGroup: MessageGroup): MessageGroup {
-        val builder = MessageGroup.newBuilder()
+    override fun encode(messageGroup: ProtoMessageGroup): ProtoMessageGroup {
+        val builder = ProtoMessageGroup.newBuilder()
 
         for (message in messageGroup.messagesList) {
             if (!message.hasMessage()) {
@@ -107,7 +103,7 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
             }
 
             builder += when(val direction = parsedMessage.direction) {
-                FIRST, SECOND -> objectMapper.writeValueAsString(parsedMessage.toMap())
+                ProtoDirection.FIRST, ProtoDirection.SECOND -> objectMapper.writeValueAsString(parsedMessage.toMap())
                 else -> error("Unsupported message direction: $direction")
             }.toByteArray(UTF_8).toRawMessage(
                 metadata.id,
@@ -120,15 +116,47 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
         return builder.build()
     }
 
+    override fun decode(messageGroup: MessageGroup): MessageGroup = MessageGroup(
+        messageGroup.messages.map {
+            if (it !is RawMessage || it.protocol.isNotBlank() && it.protocol != PROTOCOL) {
+                it
+            } else {
+                val messageType = when (it.id.direction) {
+                    Direction.INCOMING -> INCOMING
+                    Direction.OUTGOING -> OUTGOING
+                    else -> error("Unsupported message direction: ${it.id.direction}")
+                }
+
+                val parsedBody = objectMapper.readValue(it.body.array().toString(UTF_8), parsedBodyTypeRef)
+
+                ParsedMessage(it.id, it.eventId, messageType, it.metadata, PROTOCOL, parsedBody)
+            }
+        }
+    )
+
+    override fun encode(messageGroup: MessageGroup): MessageGroup = MessageGroup(
+        messageGroup.messages.map {
+            if (it !is ParsedMessage && it.protocol.isNotBlank() && it.protocol != PROTOCOL) {
+                it
+            } else {
+                require(it.id.direction in VALID_DIRECTIONS) { "Unsupported message direction: ${it.id.direction}" }
+                val encodedBody = Unpooled.wrappedBuffer(objectMapper.writeValueAsString(it.body).toByteArray(UTF_8))
+                RawMessage(it.id, it.eventId, it.metadata, PROTOCOL, encodedBody)
+            }
+        }
+    )
+
     companion object {
         private const val INCOMING = "Incoming"
         private const val OUTGOING = "Outgoing"
+        private val VALID_DIRECTIONS = arrayOf(Direction.INCOMING, Direction.OUTGOING)
+        private val parsedBodyTypeRef = object : TypeReference<Map<String, Any>>() {}
 
         private fun ByteArray.toRawMessage(
-            messageId: MessageID,
+            messageId: ProtoMessageID,
             metadataProperties: Map<String, String>,
-            eventID: EventID
-        ): RawMessage = RawMessage.newBuilder().apply {
+            eventID: ProtoEventID
+        ): ProtoRawMessage = ProtoRawMessage.newBuilder().apply {
             body = ByteString.copyFrom(this@toRawMessage)
             parentEventId = eventID
             metadataBuilder.apply {
