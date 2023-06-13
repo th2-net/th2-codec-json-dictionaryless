@@ -127,7 +127,7 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
                     else -> error("Unsupported message direction: ${it.id.direction}")
                 }
 
-                val parsedBody = objectMapper.readValue(it.body.array().toString(UTF_8), parsedBodyTypeRef)
+                val parsedBody = objectMapper.readValue(it.body.toString(UTF_8), parsedBodyTypeRef)
 
                 ParsedMessage(it.id, it.eventId, messageType, it.metadata, PROTOCOL, parsedBody)
             }

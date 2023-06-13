@@ -89,7 +89,7 @@ class EncodeTest {
 
         val group = MessageGroup(listOf(message))
 
-        val result = (codec.encode(group).messages[0] as RawMessage).body.array().toString(UTF_8)
+        val result = (codec.encode(group).messages[0] as RawMessage).body.toString(UTF_8)
         assertEquals(MAPPER.readTree(expectedJsonString), MAPPER.readTree(result))
     }
 
