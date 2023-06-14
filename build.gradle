@@ -32,7 +32,7 @@ repositories {
 
     mavenLocal()
 
-    configurations.all {
+    configurations.configureEach {
         resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
         resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
     }
@@ -53,21 +53,17 @@ jar {
 }
 
 dependencies {
-    api platform('com.exactpro.th2:bom:4.1.0')
+    api platform("com.exactpro.th2:bom:4.2.0")
 
-    implementation 'com.exactpro.th2:common:5.1.0-dev-version-5+'
-    implementation 'com.exactpro.th2:codec:5.0.0-dev-version-5+'
+    implementation "com.exactpro.th2:common:5.3.0-json-raw-body-5242142633-7ac1672-SNAPSHOT" //FIXME: migrate to release
+    implementation "com.exactpro.th2:codec:5.3.0-new-proto-5241354905-69d03b5-SNAPSHOT" //FIXME: migrate to release
 
-    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8', version: kotlin_version
-    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlin_version
-    implementation group: 'io.github.microutils', name: 'kotlin-logging', version: '1.7.9'
+    implementation "com.fasterxml.jackson.core:jackson-databind"
 
-    testImplementation group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit5', version: kotlin_version
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.1'
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit5:$kotlin_version"
 
-    compileOnly 'com.google.auto.service:auto-service:1.0.1'
-    annotationProcessor 'com.google.auto.service:auto-service:1.0.1'
-    kapt 'com.google.auto.service:auto-service:1.0.1'
+    compileOnly "com.google.auto.service:auto-service:1.1.0"
+    kapt "com.google.auto.service:auto-service:1.1.0"
 }
 
 application {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2022 Exactpro (Exactpro Systems Limited)
+ * Copyright 2022-2023 Exactpro (Exactpro Systems Limited)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.exactpro.th2.codec.json
 
 import com.exactpro.th2.common.grpc.ListValue
@@ -39,16 +40,17 @@ fun Value.toObject(): Any? = when (kindCase) {
     else -> error("Unknown value kind: $this")
 }
 
-fun Map<*, *>.toProtoBuilder(): Builder = Message.newBuilder().apply {
-    forEach { (name, value) -> this[name.toString()] = value.toProto() }
+fun Map<String, Any>.toProtoBuilder(): Builder = Message.newBuilder().apply {
+    forEach { (name, value) -> this[name] = value.toProto() }
 }
 
 fun Iterable<*>.toProto(): Value = ListValue.newBuilder().apply {
     forEach { addValues(it.toProto()) }
 }.toValue()
 
+@Suppress("UNCHECKED_CAST")
 fun Any?.toProto(): Value = when (this) {
     is Iterable<*> -> toProto()
-    is Map<*, *> -> toProtoBuilder().toValue()
+    is Map<*, *> -> (this as Map<String, Any>).toProtoBuilder().toValue()
     else -> this?.toValue() ?: nullValue()
 }
