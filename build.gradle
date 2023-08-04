@@ -2,13 +2,14 @@ plugins {
     id 'com.palantir.docker' version '0.25.0'
     id 'org.jetbrains.kotlin.jvm' version "${kotlin_version}"
     id 'application'
-    id "org.owasp.dependencycheck" version "7.2.0"
+    id "org.owasp.dependencycheck" version "8.3.1"
     id 'org.jetbrains.kotlin.kapt' version "${kotlin_version}"
+    id "com.gorylenko.gradle-git-properties" version "2.4.1"
 }
 
 dependencyCheck {
-    format='HTML'
-    failBuildOnCVSS=5
+    formats = ['SARIF', 'JSON', 'HTML']
+    failBuildOnCVSS = 5
 }
 
 group = 'com.exactpro.th2'
@@ -53,10 +54,10 @@ jar {
 }
 
 dependencies {
-    api platform("com.exactpro.th2:bom:4.2.0")
+    api platform("com.exactpro.th2:bom:4.4.0")
 
-    implementation "com.exactpro.th2:common:5.3.0-json-raw-body-5242142633-7ac1672-SNAPSHOT" //FIXME: migrate to release
-    implementation "com.exactpro.th2:codec:5.3.0-new-proto-5241354905-69d03b5-SNAPSHOT" //FIXME: migrate to release
+    implementation "com.exactpro.th2:common:5.3.0-separate-executor-+" //FIXME: migrate to release
+    implementation "com.exactpro.th2:codec:5.3.0-new-proto-+" //FIXME: migrate to release
 
     implementation "com.fasterxml.jackson.core:jackson-databind"
 
