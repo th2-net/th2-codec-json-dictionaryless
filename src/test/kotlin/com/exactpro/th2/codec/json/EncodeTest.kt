@@ -30,13 +30,15 @@ import com.exactpro.th2.common.schema.message.impl.rabbitmq.transport.RawMessage
 import com.exactpro.th2.common.value.add
 import com.exactpro.th2.common.value.listValue
 import com.fasterxml.jackson.databind.ObjectMapper
+import io.netty.buffer.Unpooled
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import kotlin.test.assertEquals
+import kotlin.test.assertSame
 import kotlin.text.Charsets.UTF_8
 
 class EncodeTest {
-    private val codecSettings = JsonPipelineCodecSettings(true, true)
+    private val codecSettings = JsonPipelineCodecSettings(encodeTypeInfo = true, decodeTypeInfo = true)
     private val codec = JsonPipelineCodec(codecSettings)
 
     @Test
@@ -91,6 +93,57 @@ class EncodeTest {
 
         val result = (codec.encode(group).messages[0] as RawMessage).body.toString(UTF_8)
         assertEquals(MAPPER.readTree(expectedJsonString), MAPPER.readTree(result))
+    }
+
+    @Test
+    fun testTransportAnyProtocolEncodeTest() {
+
+        val messageA = ParsedMessage(
+            eventId = EventId(eventId, "book_1", "scope_1", Instant.now()),
+            protocol = PROTOCOL,
+            type = "type_1",
+            body = mapOf("fieldA" to "valueA")
+        )
+        val messageB = ParsedMessage(
+            eventId = EventId(eventId, "book_1", "scope_1", Instant.now()),
+            protocol = "",
+            type = "type_1",
+            body = mapOf("fieldB" to "valueB")
+        )
+        val messageC = ParsedMessage(
+            eventId = EventId(eventId, "book_1", "scope_1", Instant.now()),
+            protocol = "test-protocol",
+            type = "type_1",
+            body = mapOf("fieldC" to "valueC")
+        )
+        val messageD = RawMessage(
+            eventId = EventId(eventId, "book_1", "scope_1", Instant.now()),
+            protocol = PROTOCOL,
+            body = Unpooled.wrappedBuffer("""{"fieldD":"valueD"}""".toByteArray())
+        )
+        val messageE = RawMessage(
+            eventId = EventId(eventId, "book_1", "scope_1", Instant.now()),
+            protocol = "",
+            body = Unpooled.wrappedBuffer("""{"fieldE":"valueE"}""".toByteArray())
+        )
+        val messageF = RawMessage(
+            eventId = EventId(eventId, "book_1", "scope_1", Instant.now()),
+            protocol = "test-protocol",
+            body = Unpooled.wrappedBuffer("""{"fieldF":"valueF"}""".toByteArray())
+        )
+
+        val group = MessageGroup(listOf(messageA, messageB, messageC, messageD, messageE, messageF))
+
+        val encoded = codec.encode(group)
+        assertEquals(6, encoded.messages.size)
+        assertEquals("""{"fieldA":"valueA"}""", (encoded.messages[0] as RawMessage).body.toString(UTF_8))
+        assertEquals(PROTOCOL, encoded.messages[0].protocol)
+        assertEquals("""{"fieldB":"valueB"}""", (encoded.messages[1] as RawMessage).body.toString(UTF_8))
+        assertEquals(PROTOCOL, encoded.messages[1].protocol)
+        assertSame(messageC, encoded.messages[2])
+        assertSame(messageD, encoded.messages[3])
+        assertSame(messageE, encoded.messages[4])
+        assertSame(messageF, encoded.messages[5])
     }
 
     companion object {
