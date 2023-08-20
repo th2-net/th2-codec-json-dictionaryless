@@ -118,7 +118,7 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
 
     override fun decode(messageGroup: MessageGroup): MessageGroup = MessageGroup(
         messageGroup.messages.map {
-            if (it !is RawMessage || it.protocol.isNotBlank() && it.protocol != PROTOCOL) {
+            if (it !is RawMessage || (it.protocol.isNotBlank() && it.protocol != PROTOCOL)) {
                 it
             } else {
                 val messageType = when (it.id.direction) {
@@ -136,7 +136,7 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
 
     override fun encode(messageGroup: MessageGroup): MessageGroup = MessageGroup(
         messageGroup.messages.map {
-            if (it !is ParsedMessage && it.protocol.isNotBlank() && it.protocol != PROTOCOL) {
+            if (it !is ParsedMessage || (it.protocol.isNotBlank() && it.protocol != PROTOCOL)) {
                 it
             } else {
                 require(it.id.direction in VALID_DIRECTIONS) { "Unsupported message direction: ${it.id.direction}" }

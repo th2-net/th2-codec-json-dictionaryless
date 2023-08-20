@@ -31,10 +31,11 @@ import org.junit.jupiter.api.Test
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertSame
 
 class DecodeTest {
 
-    private val settings = JsonPipelineCodecSettings(true, true)
+    private val settings = JsonPipelineCodecSettings(encodeTypeInfo = true, decodeTypeInfo = true)
     private val codec = JsonPipelineCodec(settings)
 
     @Test
@@ -70,6 +71,57 @@ class DecodeTest {
     }
 
     @Test
+    fun testTransportAnyProtocolDecodeTest() {
+
+        val messageA = ParsedMessage(
+            eventId = EventId(eventId, "book_1", "scope_1", Instant.now()),
+            protocol = PROTOCOL,
+            type = "type_1",
+            body = mapOf("fieldA" to "valueA")
+        )
+        val messageB = ParsedMessage(
+            eventId = EventId(eventId, "book_1", "scope_1", Instant.now()),
+            protocol = "",
+            type = "type_1",
+            body = mapOf("fieldB" to "valueB")
+        )
+        val messageC = ParsedMessage(
+            eventId = EventId(eventId, "book_1", "scope_1", Instant.now()),
+            protocol = "test-protocol",
+            type = "type_1",
+            body = mapOf("fieldC" to "valueC")
+        )
+        val messageD = RawMessage(
+            eventId = EventId(eventId, "book_1", "scope_1", Instant.now()),
+            protocol = PROTOCOL,
+            body = Unpooled.wrappedBuffer("""{"fieldD":"valueD"}""".toByteArray())
+        )
+        val messageE = RawMessage(
+            eventId = EventId(eventId, "book_1", "scope_1", Instant.now()),
+            protocol = "",
+            body = Unpooled.wrappedBuffer("""{"fieldE":"valueE"}""".toByteArray())
+        )
+        val messageF = RawMessage(
+            eventId = EventId(eventId, "book_1", "scope_1", Instant.now()),
+            protocol = "test-protocol",
+            body = Unpooled.wrappedBuffer("""{"fieldF":"valueF"}""".toByteArray())
+        )
+
+        val group = MessageGroup(listOf(messageA, messageB, messageC, messageD, messageE, messageF))
+
+        val encoded = codec.decode(group)
+        assertEquals(6, encoded.messages.size)
+        assertSame(messageA, encoded.messages[0])
+        assertSame(messageB, encoded.messages[1])
+        assertSame(messageC, encoded.messages[2])
+        assertEquals(mapOf("fieldD" to "valueD"), encoded.messages[3].body)
+        assertEquals(PROTOCOL, encoded.messages[3].protocol)
+        assertEquals(mapOf("fieldE" to "valueE"), encoded.messages[4].body)
+        assertEquals(PROTOCOL, encoded.messages[4].protocol)
+        assertSame(messageF, encoded.messages[5])
+    }
+    
+    @Test
     fun testTransportDecodeJsonRequest() {
 
         val message = RawMessage(
@@ -89,24 +141,24 @@ class DecodeTest {
         assertEquals("number(123)", body["intField"])
         assertEquals("number(123.1)", body["decimalField"])
 
-        val objectTest = body["object"] as Map<String, Any>
+        val objectTest = body["object"] as Map<*, *>
         assertNotNull(objectTest)
         assertEquals("objectFieldValue", objectTest["objectField"])
 
-        val list = body["primitiveList"] as List<Any>
+        val list = body["primitiveList"] as List<*>
         assertNotNull(list)
         assertEquals(4, list.size)
         assertEquals("number(1)", list[0])
 
-        val objectList = body["objectList"] as List<Any>
+        val objectList = body["objectList"] as List<*>
         assertNotNull(objectList)
         assertEquals(2, objectList.size)
 
-        val listObject = objectList[1] as Map<String, Any>
+        val listObject = objectList[1] as Map<*, *>
         assertEquals("boolean(true)", listObject["anotherObjectField"])
 
         objectList.forEach {
-            val obj = it as Map<String, Any>
+            val obj = it as Map<*, *>
             assertNotNull(obj)
             assertEquals(1, obj.size)
         }
