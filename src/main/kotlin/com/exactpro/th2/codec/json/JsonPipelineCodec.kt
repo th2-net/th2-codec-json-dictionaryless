@@ -17,6 +17,7 @@
 package com.exactpro.th2.codec.json
 
 import com.exactpro.th2.codec.api.IPipelineCodec
+import com.exactpro.th2.codec.api.IReportingContext
 import com.exactpro.th2.codec.json.JsonCodecFactory.Companion.PROTOCOL
 import com.exactpro.th2.common.grpc.Direction as ProtoDirection
 import com.exactpro.th2.common.grpc.EventID as ProtoEventID
@@ -47,7 +48,7 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
         }
     }
 
-    override fun decode(messageGroup: ProtoMessageGroup): ProtoMessageGroup {
+    override fun decode(messageGroup: ProtoMessageGroup, context: IReportingContext): ProtoMessageGroup {
         val builder = ProtoMessageGroup.newBuilder()
 
         for (message in messageGroup.messagesList) {
@@ -85,7 +86,7 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
         return builder.build()
     }
 
-    override fun encode(messageGroup: ProtoMessageGroup): ProtoMessageGroup {
+    override fun encode(messageGroup: ProtoMessageGroup, context: IReportingContext): ProtoMessageGroup {
         val builder = ProtoMessageGroup.newBuilder()
 
         for (message in messageGroup.messagesList) {
@@ -116,7 +117,7 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
         return builder.build()
     }
 
-    override fun decode(messageGroup: MessageGroup): MessageGroup = MessageGroup(
+    override fun decode(messageGroup: MessageGroup, context: IReportingContext): MessageGroup = MessageGroup(
         messageGroup.messages.map {
             if (it !is RawMessage || (it.protocol.isNotBlank() && it.protocol != PROTOCOL)) {
                 it
@@ -134,7 +135,7 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
         }
     )
 
-    override fun encode(messageGroup: MessageGroup): MessageGroup = MessageGroup(
+    override fun encode(messageGroup: MessageGroup, context: IReportingContext): MessageGroup = MessageGroup(
         messageGroup.messages.map {
             if (it !is ParsedMessage || (it.protocol.isNotBlank() && it.protocol != PROTOCOL)) {
                 it

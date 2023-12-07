@@ -16,6 +16,7 @@
 
 package com.exactpro.th2.codec.json
 
+import com.exactpro.th2.codec.api.impl.ReportingContext
 import com.exactpro.th2.codec.json.JsonCodecFactory.Companion.PROTOCOL
 import com.exactpro.th2.common.grpc.Direction as ProtoDirection
 import com.exactpro.th2.common.grpc.MessageGroup as ProtoMessageGroup
@@ -48,7 +49,7 @@ class DecodeTest {
         }
         val messageGroup = ProtoMessageGroup.newBuilder().addMessages(ProtoAnyMessage.newBuilder().setRawMessage(message)).build()
 
-        val decodedMessage = codec.decode(messageGroup).getMessages(0).message
+        val decodedMessage = codec.decode(messageGroup, ReportingContext()).getMessages(0).message
 
         assertEquals("value", decodedMessage.getString("stringField"))
         assertEquals("number(123)", decodedMessage.getString("intField"))
@@ -109,7 +110,7 @@ class DecodeTest {
 
         val group = MessageGroup(listOf(messageA, messageB, messageC, messageD, messageE, messageF))
 
-        val encoded = codec.decode(group)
+        val encoded = codec.decode(group, ReportingContext())
         assertEquals(6, encoded.messages.size)
         assertSame(messageA, encoded.messages[0])
         assertSame(messageB, encoded.messages[1])
@@ -133,7 +134,7 @@ class DecodeTest {
 
         val group = MessageGroup(listOf(message))
 
-        val decodedMessage = codec.decode(group).messages[0] as ParsedMessage
+        val decodedMessage = codec.decode(group, ReportingContext()).messages[0] as ParsedMessage
         val body = decodedMessage.body
 
         assertEquals("value", body["stringField"])
