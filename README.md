@@ -82,7 +82,10 @@ spec:
 ##Changelog
 
 ### 0.3.0
-+ TH2 transport protocol support.
++ th2 transport protocol support.
++ Updated common: `5.7.2-dev`
++ Updated codec: `5.4.1-dev`
++ Updated kotlin: `1.8.22`
 
 ### 0.2.0
 + Updated common, bom and codec to remove vulnerabilities.
