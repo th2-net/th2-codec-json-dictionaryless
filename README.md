@@ -1,4 +1,4 @@
-# th2-codec-json-dictionaryless v0.4.0
+# th2-codec-json-dictionaryless v0.3.0
 This microservice can encode and decode JSON messages.
 
 ## Configuration
@@ -81,12 +81,11 @@ spec:
 
 ##Changelog
 
-### 0.4.0
+### 0.3.0
++ th2 transport protocol support.
 + Updated common: `5.7.2-dev`
 + Updated codec: `5.4.1-dev`
-
-### 0.3.0
-+ TH2 transport protocol support.
++ Updated kotlin: `1.8.22`
 
 ### 0.2.0
 + Updated common, bom and codec to remove vulnerabilities.
