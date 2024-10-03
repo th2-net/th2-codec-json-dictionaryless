@@ -24,9 +24,10 @@ import java.io.IOException
 import java.math.BigDecimal
 
 
+@Suppress("serial")
 class TypeInfoDeserializer(listType: JavaType, mapType: JavaType) : UntypedObjectDeserializer(listType, mapType) {
     @Throws(IOException::class)
-    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Any = when (p.currentTokenId) {
+    override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Any = when (p.currentTokenId()) {
         JsonTokenId.ID_TRUE, JsonTokenId.ID_FALSE -> "boolean(" + p.booleanValue.toString() + ")"
         JsonTokenId.ID_NUMBER_INT, JsonTokenId.ID_NUMBER_FLOAT -> {
             val number = p.numberValue.apply {

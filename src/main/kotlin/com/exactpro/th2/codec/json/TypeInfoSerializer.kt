@@ -25,16 +25,17 @@ import kotlin.String
 import kotlin.Throws
 
 
+@Suppress("serial")
 class TypeInfoSerializer: StdSerializer<String>(String::class.java) {
     @Throws(IOException::class)
     override fun serialize(value: String, gen: JsonGenerator, provider: SerializerProvider) = when {
         !value.endsWith(TYPE_SUFFIX) -> gen.writeString(value)
         value.startsWith(NUMBER_PREFIX) -> {
-            value.substring(NUMBER_PREFIX_LENGTH, value.lastIndex).let { value ->
-                if (value.any { it == '.' || it == ',' }) {
-                    gen.writeNumber(BigDecimal(value))
+            value.substring(NUMBER_PREFIX_LENGTH, value.lastIndex).let { subValue ->
+                if (subValue.any { it == '.' || it == ',' }) {
+                    gen.writeNumber(BigDecimal(subValue))
                 } else {
-                    gen.writeNumber(BigInteger(value))
+                    gen.writeNumber(BigInteger(subValue))
                 }
             }
         }
