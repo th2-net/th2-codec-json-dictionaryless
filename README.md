@@ -1,4 +1,4 @@
-# th2-codec-json-dictionaryless v0.5.0
+# th2-codec-json-dictionaryless v0.6.0
 This microservice can encode and decode JSON messages.
 
 ## Configuration
@@ -17,69 +17,74 @@ Codec will attempt to decode all raw messages in a message group as JSON.
 Here's an example of infra-mgr config required to deploy this service
 
 ```yaml
-apiVersion: th2.exactpro.com/v1
+apiVersion: th2.exactpro.com/v2
 kind: Th2Box
 metadata:
   name: ws-json-codec
 spec:
-  image-name: ghcr.io/th2-net/th2-codec-json-dictionaryless
-  image-version: 0.1.0
-  custom-config:
+  imageName: ghcr.io/th2-net/th2-codec-json-dictionaryless
+  imageVersion: 0.1.0
+  type: th2-codec
+  customConfig:
+    transportLines:
+      general:
+        type: TH2_TRANSPORT
+        useParentEventId: true
+      lw:
+        type: TH2_TRANSPORT
+        useParentEventId: false
+      rpt:
+        type: TH2_TRANSPORT
+        useParentEventId: false
     codecSettings:
       encodeTypeInfo: true
       decodeTypeInfo: true
-  type: th2-codec
   pins:
-    # encoder
-    - name: in_codec_encode
-      connection-type: mq
-      attributes:
-        - encoder_in
-        - subscribe
-    - name: out_codec_encode
-      connection-type: mq
-      attributes:
-        - encoder_out
-        - publish
-    # decoder
-    - name: in_codec_decode
-      connection-type: mq
-      attributes:
-        - decoder_in
-        - subscribe
-    - name: out_codec_decode
-      connection-type: mq
-      attributes:
-        - decoder_out
-        - publish
-    # encoder general (technical)
-    - name: in_codec_general_encode
-      connection-type: mq
-      attributes:
-        - general_encoder_in
-        - subscribe
-    - name: out_codec_general_encode
-      connection-type: mq
-      attributes:
-        - general_encoder_out
-        - publish
-    # decoder general (technical)
-    - name: in_codec_general_decode
-      connection-type: mq
-      attributes:
-        - general_decoder_in
-        - subscribe
-    - name: out_codec_general_decode
-      connection-type: mq
-      attributes:
-        - general_decoder_out
-        - publish
+    mq:
+      subscribers:
+        - name: in_codec_general_decode
+          attributes: [general_decoder_in, transport-group, subscribe]
+        - name: in_codec_general_encode
+          attributes: [general_encoder_in, transport-group, subscribe]
+
+        - name: in_codec_lw_decode
+          attributes: [lw_decoder_in, transport-group, subscribe]
+        - name: in_codec_lw_encode
+          attributes: [lw_encoder_in, transport-group, subscribe]
+
+        - name: in_codec_rpt_decode
+          attributes: [rpt_decoder_in, transport-group, subscribe]
+        - name: in_codec_rpt_encode
+          attributes: [rpt_encoder_in, transport-group, subscribe]
+      publishers:
+        - name: out_codec_general_decode
+          attributes: [general_decoder_out, transport-group, publish]
+        - name: out_codec_general_encode
+          attributes: [general_encoder_out, transport-group, publish]
+
+        - name: out_codec_lw_decode
+          attributes: [lw_decoder_out, transport-group, publish]
+        - name: out_codec_lw_encode
+          attributes: [lw_encoder_out, transport-group, publish]
+
+        - name: out_codec_rpt_decode
+          attributes: [rpt_decoder_out, transport-group, publish]
+        - name: out_codec_rpt_encode
+          attributes: [rpt_encoder_out, transport-group, publish]
   extended-settings:
     service:
       enabled: false
 ```
 
 ## Changelog
+
+### 0.6.0
++ Updated:
+  + th2-common: `2.15.0-dev`
+  + kotlin-logging: `7.0.6`
++ Updated gradle plugins:
+  + th2 gradle plugin: `0.2.4` (bom: `4.11.0`)
+  + kotlin: `2.1.20`
 
 ### 0.5.0
 
