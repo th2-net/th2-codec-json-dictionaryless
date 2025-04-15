@@ -1,4 +1,4 @@
-# th2-codec-json-dictionaryless v0.5.1
+# th2-codec-json-dictionaryless v0.6.0
 This microservice can encode and decode JSON messages.
 
 ## Configuration
@@ -78,7 +78,7 @@ spec:
 
 ## Changelog
 
-### 0.5.1
+### 0.6.0
 + Updated:
   + th2-common: `2.15.0-dev`
   + kotlin-logging: `7.0.6`
