@@ -83,7 +83,10 @@ class DecodeTest {
         assertEquals(1, group.messagesCount)
         val decodedMessage = group.getMessages(0).message
 
-        assertEquals(decodedMessage.fieldsMap, wrapProto(mapOf(ROOT_ARRAY_FIELD to JSON_OBJECT)).messageValue.fieldsMap)
+        assertEquals(
+            decodedMessage.fieldsMap,
+            wrapProto(mapOf(ROOT_ARRAY_FIELD to listOf(JSON_OBJECT))).messageValue.fieldsMap
+        )
         assertEquals(PROTO_EVENT_ID, decodedMessage.parentEventId)
     }
 
@@ -193,7 +196,7 @@ class DecodeTest {
             .messages.single() as ParsedMessage
         val body = decodedMessage.body
 
-        assertEquals(body, wrapTransport(mapOf(ROOT_ARRAY_FIELD to JSON_OBJECT)))
+        assertEquals(body, wrapTransport(mapOf(ROOT_ARRAY_FIELD to listOf(JSON_OBJECT))))
         assertEquals(TRANSPORT_EVENT_ID, decodedMessage.eventId)
     }
 

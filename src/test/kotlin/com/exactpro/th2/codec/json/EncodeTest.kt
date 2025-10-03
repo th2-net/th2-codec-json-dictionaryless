@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 Exactpro (Exactpro Systems Limited)
+ * Copyright 2022-2025 Exactpro (Exactpro Systems Limited)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -71,7 +71,7 @@ class EncodeTest {
                 id = PROTO_MESSAGE_ID
                 protocol = PROTOCOL
             }
-            addFields(wrapProto(mapOf(ROOT_ARRAY_FIELD to JSON_OBJECT)).messageValue.fieldsMap)
+            addFields(wrapProto(mapOf(ROOT_ARRAY_FIELD to listOf(JSON_OBJECT))).messageValue.fieldsMap)
         }
         val messageGroup = ProtoMessageGroup.newBuilder().addMessages(
             ProtoAnyMessage.newBuilder().setMessage(message)
@@ -179,7 +179,7 @@ class EncodeTest {
             eventId = TRANSPORT_EVENT_ID,
             protocol = PROTOCOL,
             type = "type_1",
-            body = wrapTransport(mapOf(ROOT_ARRAY_FIELD to JSON_OBJECT)) as Map<String, Any?>
+            body = wrapTransport(mapOf(ROOT_ARRAY_FIELD to listOf(JSON_OBJECT))) as Map<String, Any?>
         )
 
         val group = MessageGroup(listOf(message))

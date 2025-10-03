@@ -20,5 +20,5 @@ import com.exactpro.th2.codec.api.IPipelineCodecSettings
 class JsonPipelineCodecSettings(
     val encodeTypeInfo: Boolean,
     val decodeTypeInfo: Boolean,
-    val rootArrayField: String = "th2-array"
+    val rootArrayField: String? = null
 ): IPipelineCodecSettings
