@@ -31,7 +31,7 @@ dependencies {
     }
     testImplementation(libs.strikt.core)
     testImplementation(libs.mockito.kotlin)
-    testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit5"
 }
 
 application {
