@@ -5,6 +5,7 @@ This microservice can encode and decode JSON messages.
 Main configuration is done via setting following properties in codecSettings block of a custom configuration:
 - **encodeTypeInfo** - message fields that have content like `boolean(*)` or `number(*)` will be encoded as json booleans and numbers respectively. (default: false)
 - **decodeTypeInfo** - numbers and booleans from json tree will be decoded as `boolean(value)` and `number(value)`. (default: false)
+- **rootArrayField** - if specified, codec encodes `<rootArrayField>: [...]` as `[...]` and decodes `[...]` as `<rootArrayField>: [...]`. (default: null)
 
 ## Encoding
 Codec will attempt to encode all parsed messages in a message group if their protocol is set to json (or empty)
@@ -79,6 +80,8 @@ spec:
 ## Changelog
 
 ### 0.6.0
+
++ Added `rootArrayField` option for encoding / decoding messages with array root
 + Updated:
   + common: `5.16.1-dev`
   + codec: `5.6.1-dev`
