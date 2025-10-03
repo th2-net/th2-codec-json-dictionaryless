@@ -18,117 +18,208 @@ package com.exactpro.th2.codec.json
 
 import com.exactpro.th2.codec.api.impl.ReportingContext
 import com.exactpro.th2.codec.json.JsonCodecFactory.Companion.PROTOCOL
-import com.exactpro.th2.common.grpc.AnyMessage as ProtoAnyMessage
-import com.exactpro.th2.common.grpc.Direction as ProtoDirection
-import com.exactpro.th2.common.grpc.Message as ProtoMessage
-import com.exactpro.th2.common.grpc.MessageGroup as ProtoMessageGroup
-import com.exactpro.th2.common.message.direction
-import com.exactpro.th2.common.message.set
-import com.exactpro.th2.common.schema.message.impl.rabbitmq.transport.EventId
+import com.exactpro.th2.common.message.addField
+import com.exactpro.th2.common.message.addFields
 import com.exactpro.th2.common.schema.message.impl.rabbitmq.transport.MessageGroup
 import com.exactpro.th2.common.schema.message.impl.rabbitmq.transport.ParsedMessage
 import com.exactpro.th2.common.schema.message.impl.rabbitmq.transport.RawMessage
-import com.exactpro.th2.common.value.add
-import com.exactpro.th2.common.value.listValue
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.exactpro.th2.common.value.toValue
+import com.google.protobuf.UnsafeByteOperations
 import io.netty.buffer.Unpooled
 import org.junit.jupiter.api.Test
-import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
 import kotlin.text.Charsets.UTF_8
+import com.exactpro.th2.common.grpc.AnyMessage as ProtoAnyMessage
+import com.exactpro.th2.common.grpc.Message as ProtoMessage
+import com.exactpro.th2.common.grpc.Message as ProtoParsedMessage
+import com.exactpro.th2.common.grpc.MessageGroup as ProtoMessageGroup
+import com.exactpro.th2.common.grpc.RawMessage as ProtoRawMessage
 
 class EncodeTest {
-    private val codecSettings = JsonPipelineCodecSettings(encodeTypeInfo = true, decodeTypeInfo = true)
+    private val codecSettings = JsonPipelineCodecSettings(
+        encodeTypeInfo = true,
+        decodeTypeInfo = true,
+        rootArrayField = ROOT_ARRAY_FIELD
+    )
     private val codec = JsonPipelineCodec(codecSettings)
 
     @Test
-    fun testProtoAnyMessageEncodeTest() {
+    fun `test proto encode json object`() {
         val message = ProtoMessage.newBuilder().apply {
-            direction = ProtoDirection.FIRST
-            this["stringField"] = "stringValue"
-            this["numberField"] = "number(123)"
-            this["booleanValue"] = "boolean(true)"
-            this["object"] = ProtoMessage.newBuilder().apply {
-                this["objectField"] = "objectValue"
+            parentEventId = PROTO_EVENT_ID
+            metadataBuilder.apply {
+                id = PROTO_MESSAGE_ID
+                protocol = PROTOCOL
             }
-            this["listOfPrimitives"] = listOf("number(1.1)", "number(2.2)")
-            this["listOfObjects"] = listValue().apply {
-                this.add(ProtoMessage.newBuilder().apply {
-                    this["objectField"] = "value"
-                })
-                this.add(ProtoMessage.newBuilder().apply {
-                    this["numberField"] =  "number(123)"
-                })
-            }
-            parentEventIdBuilder.id = EVENT_ID
-            metadataBuilder.protocol = PROTOCOL
+            addFields(wrapProto(JSON_OBJECT).messageValue.fieldsMap)
         }
-        val messageGroup = ProtoMessageGroup.newBuilder().addMessages(ProtoAnyMessage.newBuilder().setMessage(message)).build()
-        val result = codec.encode(messageGroup, ReportingContext()).getMessages(0).rawMessage.body.toString(UTF_8)
-        assertEquals(MAPPER.readTree(EXPECTED_JSON_STRING), MAPPER.readTree(result))
+        val messageGroup = ProtoMessageGroup.newBuilder().addMessages(
+            ProtoAnyMessage.newBuilder().setMessage(message)
+        ).build()
+        val group = codec.encode(messageGroup, ReportingContext())
+        assertEquals(1, group.messagesCount)
+        val result = group.getMessages(0).rawMessage.body.toString(UTF_8)
+        assertEquals(MAPPER.readTree(JSON_OBJECT_STRING), MAPPER.readTree(result))
     }
 
     @Test
-    fun testTransportAnyMessageEncodeTest() {
-        val body = mapOf(
-            "stringField" to "stringValue",
-            "numberField" to 123,
-            "booleanValue" to true,
-            "object" to mapOf("objectField" to "objectValue"),
-            "listOfPrimitives" to listOf(1.1, 2.2),
-            "listOfObjects" to listOf(
-                mapOf("objectField" to "value"),
-                mapOf("numberField" to 123)
-            )
-        )
+    fun `test proto encode json array`() {
+        val message = ProtoMessage.newBuilder().apply {
+            parentEventId = PROTO_EVENT_ID
+            metadataBuilder.apply {
+                id = PROTO_MESSAGE_ID
+                protocol = PROTOCOL
+            }
+            addFields(wrapProto(mapOf(ROOT_ARRAY_FIELD to JSON_OBJECT)).messageValue.fieldsMap)
+        }
+        val messageGroup = ProtoMessageGroup.newBuilder().addMessages(
+            ProtoAnyMessage.newBuilder().setMessage(message)
+        ).build()
+        val group = codec.encode(messageGroup, ReportingContext())
+        assertEquals(1, group.messagesCount)
+        val result = group.getMessages(0).rawMessage.body.toString(UTF_8)
+        assertEquals(MAPPER.readTree("[$JSON_OBJECT_STRING]"), MAPPER.readTree(result))
+    }
 
-        val message = ParsedMessage(
-            eventId = EventId(EVENT_ID, "book_1", "scope_1", Instant.now()),
+    @Test
+    fun `test proot encode protocol`() {
+        val messageA = ProtoParsedMessage.newBuilder().apply {
+            parentEventId = PROTO_EVENT_ID
+            metadataBuilder.apply {
+                id = PROTO_MESSAGE_ID
+                protocol = PROTOCOL
+                messageType = "type_1"
+            }
+            addField("fieldA", "valueA".toValue())
+        }.build()
+        val messageB = ProtoParsedMessage.newBuilder().apply {
+            parentEventId = PROTO_EVENT_ID
+            metadataBuilder.apply {
+                id = PROTO_MESSAGE_ID
+                protocol = ""
+                messageType = "type_1"
+            }
+            addField("fieldB", "valueB".toValue())
+        }.build()
+        val messageC = ProtoParsedMessage.newBuilder().apply {
+            parentEventId = PROTO_EVENT_ID
+            metadataBuilder.apply {
+                id = PROTO_MESSAGE_ID
+                protocol = "test-protocol"
+                messageType = "type_1"
+            }
+            addField("fieldC", "fieldC".toValue())
+        }.build()
+        val messageD = ProtoRawMessage.newBuilder().apply {
+            parentEventId = PROTO_EVENT_ID
+            metadataBuilder.apply {
+                id = PROTO_MESSAGE_ID
+                protocol = PROTOCOL
+            }
+            metadataBuilder.protocol = PROTOCOL
+            body = UnsafeByteOperations.unsafeWrap("""{"fieldD":"valueD"}""".toByteArray())
+        }.build()
+        val messageE = ProtoRawMessage.newBuilder().apply {
+            parentEventId = PROTO_EVENT_ID
+            metadataBuilder.apply {
+                id = PROTO_MESSAGE_ID
+                protocol = ""
+            }
+            body = UnsafeByteOperations.unsafeWrap("""{"fieldE":"valueE"}""".toByteArray())
+        }.build()
+        val messageF = ProtoRawMessage.newBuilder().apply {
+            parentEventId = PROTO_EVENT_ID
+            metadataBuilder.apply {
+                id = PROTO_MESSAGE_ID
+                protocol = "test-protocol"
+            }
+            body = UnsafeByteOperations.unsafeWrap("""{"fieldF":"fieldF"}""".toByteArray())
+        }.build()
+
+        val group = ProtoMessageGroup.newBuilder()
+            .addMessages(ProtoAnyMessage.newBuilder().setMessage(messageA))
+            .addMessages(ProtoAnyMessage.newBuilder().setMessage(messageB))
+            .addMessages(ProtoAnyMessage.newBuilder().setMessage(messageC))
+            .addMessages(ProtoAnyMessage.newBuilder().setRawMessage(messageD))
+            .addMessages(ProtoAnyMessage.newBuilder().setRawMessage(messageE))
+            .addMessages(ProtoAnyMessage.newBuilder().setRawMessage(messageF))
+            .build()
+
+        val encoded = codec.encode(group, ReportingContext())
+        assertEquals(6, encoded.messagesCount)
+        assertEquals("""{"fieldA":"valueA"}""", encoded.getMessages(0).rawMessage.body.toString(UTF_8))
+        assertEquals(PROTOCOL, encoded.getMessages(0).rawMessage.metadata.protocol)
+        assertEquals("""{"fieldB":"valueB"}""", encoded.getMessages(1).rawMessage.body.toString(UTF_8))
+        assertEquals(PROTOCOL, encoded.getMessages(1).rawMessage.metadata.protocol)
+        assertSame(messageC, encoded.getMessages(2).message)
+        assertSame(messageD, encoded.getMessages(3).rawMessage)
+        assertSame(messageE, encoded.getMessages(4).rawMessage)
+        assertSame(messageF, encoded.getMessages(5).rawMessage)
+    }
+
+    @Test
+    fun `test transport encode json object`() {
+        @Suppress("UNCHECKED_CAST") val message = ParsedMessage(
+            eventId = TRANSPORT_EVENT_ID,
             protocol = PROTOCOL,
             type = "type_1",
-            body = body
+            body = wrapTransport(JSON_OBJECT) as Map<String, Any?>
         )
 
         val group = MessageGroup(listOf(message))
 
-        val result = (codec.encode(group, ReportingContext()).messages[0] as RawMessage).body.toString(UTF_8)
-        assertEquals(MAPPER.readTree(EXPECTED_JSON_STRING), MAPPER.readTree(result))
+        val result = (codec.encode(group, ReportingContext()).messages.single() as RawMessage).body.toString(UTF_8)
+        assertEquals(MAPPER.readTree(JSON_OBJECT_STRING), MAPPER.readTree(result))
     }
 
     @Test
-    fun testTransportAnyProtocolEncodeTest() {
+    fun `test transport encode json array`() {
+        @Suppress("UNCHECKED_CAST") val message = ParsedMessage(
+            eventId = TRANSPORT_EVENT_ID,
+            protocol = PROTOCOL,
+            type = "type_1",
+            body = wrapTransport(mapOf(ROOT_ARRAY_FIELD to JSON_OBJECT)) as Map<String, Any?>
+        )
 
+        val group = MessageGroup(listOf(message))
+
+        val result = (codec.encode(group, ReportingContext()).messages.single() as RawMessage).body.toString(UTF_8)
+        assertEquals(MAPPER.readTree("[$JSON_OBJECT_STRING]"), MAPPER.readTree(result))
+    }
+
+    @Test
+    fun `test transport protocol encode`() {
         val messageA = ParsedMessage(
-            eventId = EventId(EVENT_ID, "book_1", "scope_1", Instant.now()),
+            eventId = TRANSPORT_EVENT_ID,
             protocol = PROTOCOL,
             type = "type_1",
             body = mapOf("fieldA" to "valueA")
         )
         val messageB = ParsedMessage(
-            eventId = EventId(EVENT_ID, "book_1", "scope_1", Instant.now()),
+            eventId = TRANSPORT_EVENT_ID,
             protocol = "",
             type = "type_1",
             body = mapOf("fieldB" to "valueB")
         )
         val messageC = ParsedMessage(
-            eventId = EventId(EVENT_ID, "book_1", "scope_1", Instant.now()),
+            eventId = TRANSPORT_EVENT_ID,
             protocol = "test-protocol",
             type = "type_1",
             body = mapOf("fieldC" to "valueC")
         )
         val messageD = RawMessage(
-            eventId = EventId(EVENT_ID, "book_1", "scope_1", Instant.now()),
+            eventId = TRANSPORT_EVENT_ID,
             protocol = PROTOCOL,
             body = Unpooled.wrappedBuffer("""{"fieldD":"valueD"}""".toByteArray())
         )
         val messageE = RawMessage(
-            eventId = EventId(EVENT_ID, "book_1", "scope_1", Instant.now()),
+            eventId = TRANSPORT_EVENT_ID,
             protocol = "",
             body = Unpooled.wrappedBuffer("""{"fieldE":"valueE"}""".toByteArray())
         )
         val messageF = RawMessage(
-            eventId = EventId(EVENT_ID, "book_1", "scope_1", Instant.now()),
+            eventId = TRANSPORT_EVENT_ID,
             protocol = "test-protocol",
             body = Unpooled.wrappedBuffer("""{"fieldF":"valueF"}""".toByteArray())
         )
@@ -148,29 +239,17 @@ class EncodeTest {
     }
 
     companion object {
-        private val MAPPER = ObjectMapper()
-        private const val EVENT_ID = "123"
-        private val EXPECTED_JSON_STRING = """
-            {
-              "numberField": 123,
-              "listOfObjects": [
-                {
-                  "objectField": "value"
-                },
-                {
-                  "numberField": 123
-                }
-              ],
-              "booleanValue": true,
-              "listOfPrimitives": [
-                1.1,
-                2.2
-              ],
-              "stringField": "stringValue",
-              "object": {
-                "objectField": "objectValue"
-              }
-            }
-        """.trimIndent()
+        private val JSON_OBJECT = mapOf(
+            "numberField" to 123,
+            "listOfObjects" to listOf(
+                mapOf("objectField" to "value"),
+                mapOf("numberField" to 123)
+            ),
+            "booleanValue" to true,
+            "listOfPrimitives" to listOf(1.1, 2.2),
+            "stringField" to "stringValue",
+            "object" to mapOf("objectField" to "objectValue")
+        )
+        private val JSON_OBJECT_STRING = MAPPER.writeValueAsString(JSON_OBJECT)
     }
 }

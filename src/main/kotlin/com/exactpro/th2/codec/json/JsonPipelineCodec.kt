@@ -71,7 +71,7 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
 
             val body = rawMessage.body.toByteArray().toString(UTF_8)
 
-            builder += objectMapper.readValue(body, parsedBodyTypeRef).toProtoBuilder().apply {
+            builder += objectMapper.readValue(body, parsedMapTypeRef).toProtoBuilder().apply {
                 if (rawMessage.hasParentEventId()) parentEventId = rawMessage.parentEventId
 
                 metadataBuilder.apply {
@@ -128,7 +128,7 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
                     else -> error("Unsupported message direction: ${it.id.direction}")
                 }
 
-                val parsedBody = objectMapper.readValue(it.body.toString(UTF_8), parsedBodyTypeRef)
+                val parsedBody = objectMapper.readValue(it.body.toString(UTF_8), parsedMapTypeRef)
 
                 ParsedMessage(it.id, it.eventId, messageType, it.metadata, PROTOCOL, parsedBody)
             }
@@ -151,7 +151,8 @@ class JsonPipelineCodec(settings: JsonPipelineCodecSettings): IPipelineCodec {
         private const val INCOMING = "Incoming"
         private const val OUTGOING = "Outgoing"
         private val VALID_DIRECTIONS = arrayOf(Direction.INCOMING, Direction.OUTGOING)
-        private val parsedBodyTypeRef = object : TypeReference<Map<String, Any>>() {}
+        private val parsedMapTypeRef = object : TypeReference<Map<String, Any>>() {}
+        private val parsedArrayTypeRef = object : TypeReference<List<Any>>() {}
 
         private fun ByteArray.toRawMessage(
             messageId: ProtoMessageID,
