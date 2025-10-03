@@ -81,7 +81,7 @@ spec:
 ### 0.6.0
 + Updated:
   + common: `5.16.1-dev`
-  + codec: `5.5.0-dev`
+  + codec: `5.6.1-dev`
   + kotlin-logging: `7.0.13`
 + Updated gradle plugins:
   + th2 gradle plugin: `0.3.9` (bom: `4.14.1`)
