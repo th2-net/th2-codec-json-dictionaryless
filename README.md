@@ -1,4 +1,4 @@
-# th2-codec-json-dictionaryless v0.6.0
+# th2-codec-json-dictionaryless v0.6.1
 This microservice can encode and decode JSON messages.
 
 ## Configuration
@@ -78,6 +78,14 @@ spec:
 ```
 
 ## Changelog
+
+### 0.6.1
+
++ Produce multi-platform docker image
+  + migrated to [amazoncorretto:11-alpine-jdk](https://hub.docker.com/layers/library/amazoncorretto/11-alpine-jdk) docker image as base
++ Updated:
+  + th2 gradle plugin: `0.3.10` (bom: `4.14.2`)
+  + kotlin: `2.2.21`
 
 ### 0.6.0
 
